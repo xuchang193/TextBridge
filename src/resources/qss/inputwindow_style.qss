@@ -1,0 +1,5 @@
+QWidget#MainWindow {
+    border: 1px solid #acacac;
+    color: black;
+    background: yellow;
+}

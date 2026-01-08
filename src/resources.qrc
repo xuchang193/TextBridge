@@ -1,0 +1,17 @@
+<!-- resources.qrc -->
+<RCC>
+    <qresource prefix="/">
+        <file>resources/fonts/NotoSansSC-Regular.ttf</file>
+        <file>resources/qss/inputwindow_style.qss</file>
+        <file>resources/images/down_arrow.png</file>
+        <file>resources/images/down_arrow_disabled.png</file>
+        <file>resources/images/up_arrow.png</file>
+        <file>resources/images/up_arrow_disabled.png</file>
+        <file>resources/images/target.png</file>
+        <file>resources/images/vdi_input.svg</file>
+        <file>resources/qss/down_pushbtn_style.qss</file>
+        <file>resources/qss/up_pushbtn_style.qss</file>
+        <file>resources/qss/plain_text_edit_style.qss</file>
+        <file>resources/qss/center_widget_style.qss</file>
+    </qresource>
+</RCC>

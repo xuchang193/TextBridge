@@ -1,0 +1,4 @@
+build*/
+release*/
+CMakeLists.txt.user
+.git/

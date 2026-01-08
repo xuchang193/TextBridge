@@ -1,0 +1,89 @@
+name: Windows Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build and Package
+    runs-on: windows-2019 # 兼容Qt 5.14.2，也可替换为windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 新增：安装Qt 5.14.2对应的MinGW 7.3编译器（核心修复）
+      - name: Install MinGW 7.3
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          version: 7.3.0
+          platform: x64
+
+      # 安装Qt：补充add-to-path确保windeployqt可被找到
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '5.14.2'
+          arch: 'win64_mingw73'
+          mirror: 'http://mirrors.ocf.berkeley.edu/qt/'
+          add-to-path: true # 关键：将Qt的bin目录加入系统PATH
+
+      # 优化CMake配置：改用PowerShell，显式指定编译器
+      - name: Configure CMake
+        run: |
+          mkdir -Force build_ci  # PowerShell的强制创建目录
+          cd build_ci
+          cmake -G "MinGW Makefiles" `
+                -DCMAKE_BUILD_TYPE=Release `
+                -DCMAKE_C_COMPILER=gcc `
+                -DCMAKE_CXX_COMPILER=g++ `
+                ..
+        shell: pwsh # 用PowerShell替代bash，适配Windows路径
+
+      # 修复构建参数：移除无效的--config Release
+      - name: Build Application
+        run: |
+          cd build_ci
+          cmake --build . --parallel  # --parallel启用多线程构建，加速编译
+        shell: pwsh
+
+      # 优化打包步骤：PowerShell语法，增强容错性
+      - name: Package with windeployqt
+        run: |
+          # 创建打包目录（强制覆盖已有目录）
+          mkdir -Force release_package
+          
+          # 复制可执行文件（请确认你的exe实际输出路径！）
+          Copy-Item -Path build_ci\src\TextBridge.exe -Destination release_package\ -Force
+          
+          # 运行windeployqt：补充--no-opengl-sw减少冗余依赖
+          windeployqt --release --no-translations --compiler-runtime --no-opengl-sw --dir release_package release_package\TextBridge.exe
+          
+          # 创建qt.conf：隔离Qt路径，避免依赖系统Qt
+          @"
+          [Paths]
+          Plugins=.
+          Libraries=.
+          "@ | Out-File -FilePath release_package\qt.conf -Encoding ASCII
+          
+          # 清理无关文件（忽略不存在的文件，避免构建中断）
+          Remove-Item -Path release_package\*.cpp, release_package\*.h, release_package\*.obj -ErrorAction SilentlyContinue
+        shell: pwsh
+
+      # 压缩打包：添加-Force覆盖已有zip
+      - name: Create Zip Archive
+        run: |
+          Compress-Archive -Path release_package\* -DestinationPath TextBridge-Win64.zip -Force
+        shell: pwsh
+
+      # 发布到GitHub Release
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: TextBridge-Win64.zip
+          body_path: README.md # 若无需README作为发布说明，可改为body: "Windows Release Build"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
