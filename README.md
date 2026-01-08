@@ -88,4 +88,4 @@ TextBridge/
 
 ## License
 
-[MIT License](LICENSE) (or your preferred license)
+[MIT License](LICENSE)
