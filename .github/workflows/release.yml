@@ -54,26 +54,29 @@ jobs:
       # 优化打包步骤：PowerShell语法，增强容错性
       - name: Package with windeployqt
         run: |
-          # 创建打包目录（强制覆盖已有目录）
+          # 【新增兜底】取消系统Qt环境变量的干扰，临时重置为打包目录
+          $env:QT_PLUGIN_PATH = "release_package/plugins"
+          $env:QML2_IMPORT_PATH = "release_package/qml"
+
+          # 1. 强制创建打包目录 & 复制exe
           mkdir -Force release_package
-          
-          # 复制可执行文件（请确认你的exe实际输出路径！）
           Copy-Item -Path build_ci\src\TextBridge.exe -Destination release_package\ -Force
-          
-          # 运行windeployqt：补充--no-opengl-sw减少冗余依赖
-          windeployqt --release --no-translations --compiler-runtime --no-opengl-sw --dir release_package release_package\TextBridge.exe
-          
-          # 创建qt.conf：隔离Qt路径，避免依赖系统Qt
+
+          # 2. 修复后的核心打包命令
+          windeployqt release_package\TextBridge.exe --release --no-translations --compiler-runtime --no-angle --no-opengl
+
+          # 3. 完整的qt.conf配置
           @"
           [Paths]
-          Plugins=.
-          Libraries=.
-          "@ | Out-File -FilePath release_package\qt.conf -Encoding ASCII
-          
-          # 清理无关文件（忽略不存在的文件，避免构建中断）
+          Prefix = .
+          Plugins = plugins
+          Libraries = lib
+          Binaries = .
+          "@ | Out-File -FilePath release_package\qt.conf -Encoding ASCII -Force
+
+          # 4. 清理冗余文件
           Remove-Item -Path release_package\*.cpp, release_package\*.h, release_package\*.obj -ErrorAction SilentlyContinue
         shell: pwsh
-
       # 压缩打包：添加-Force覆盖已有zip
       - name: Create Zip Archive
         run: |
