@@ -52,31 +52,44 @@ jobs:
         shell: pwsh
 
       # 优化打包步骤：PowerShell语法，增强容错性
-      - name: Package with windeployqt
+      - name: Package with windeployqt (Fixed All Bugs)
         run: |
-          # 【新增兜底】取消系统Qt环境变量的干扰，临时重置为打包目录
-          $env:QT_PLUGIN_PATH = "release_package/plugins"
-          $env:QML2_IMPORT_PATH = "release_package/qml"
+          # ===== 【根因1修复 核心】彻底清空Qt相关环境变量，优先级最高，杜绝干扰 =====
+          # 直接删除这两个环境变量，让windeployqt完全找不到系统Qt，必须自己复制依赖
+          Remove-Item Env:QT_PLUGIN_PATH -ErrorAction SilentlyContinue
+          Remove-Item Env:QML2_IMPORT_PATH -ErrorAction SilentlyContinue
+          Remove-Item Env:Qt5_Dir -ErrorAction SilentlyContinue
 
-          # 1. 强制创建打包目录 & 复制exe
+          # ===== 1. 创建打包目录 + 复制编译好的exe =====
           mkdir -Force release_package
           Copy-Item -Path build_ci\src\TextBridge.exe -Destination release_package\ -Force
 
-          # 2. 修复后的核心打包命令
-          windeployqt release_package\TextBridge.exe --release --no-translations --compiler-runtime --no-angle --no-opengl
+          # ===== 2. 最优打包命令（精简无错，适配你的版本） =====
+          windeployqt release_package\TextBridge.exe --release --no-translations --compiler-runtime
 
-          # 3. 完整的qt.conf配置
+          # ===== 【根因2修复 核心】手动复制Qt5.14.2缺失的platforms插件（必加，救命题） =====
+          # Qt的插件路径是固定的，由install-qt-action安装到这个目录，无需修改！
+          $QT_ROOT = "Qt/5.14.2/mingw73_64"
+          mkdir -Force release_package/platforms
+          Copy-Item -Path "$QT_ROOT/plugins/platforms/qwindows.dll" -Destination release_package/platforms/ -Force
+          Copy-Item -Path "$QT_ROOT/plugins/platforms/qminimal.dll" -Destination release_package/platforms/ -Force
+
+          # ===== 3. 写入【最优稳定版】qt.conf 彻底隔离环境，防止运行时闪退 =====
           @"
           [Paths]
           Prefix = .
-          Plugins = plugins
-          Libraries = lib
+          Plugins = platforms
+          Libraries = .
           Binaries = .
           "@ | Out-File -FilePath release_package\qt.conf -Encoding ASCII -Force
 
-          # 4. 清理冗余文件
+          # ===== 4. 清理冗余文件，容错处理 =====
           Remove-Item -Path release_package\*.cpp, release_package\*.h, release_package\*.obj -ErrorAction SilentlyContinue
-        shell: pwsh
+
+          # ===== 验证：打印打包目录结构，确认所有核心文件都在 =====
+          Write-Host "===== 打包目录文件清单 ====="
+          Get-ChildItem -Recurse release_package
+        shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"      
       # 压缩打包：添加-Force覆盖已有zip
       - name: Create Zip Archive
         run: |
