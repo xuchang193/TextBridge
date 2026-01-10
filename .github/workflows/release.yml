@@ -64,33 +64,38 @@ jobs:
           $qtRootDir = Split-Path $qtBinDir
           Write-Host "Detected Qt Root: $qtRootDir"
           
-          # 3. 运行 windeployqt
-          # 参考成功案例：直接在 exe 目录执行，或者指定 exe 路径
-          # 关键差异：成功案例中是在 exe 所在目录执行的
-          
+          # 3. 运行 windeployqt (模仿成功案例：进入目录执行)
           Write-Host "Running windeployqt..."
-          # 将Qt bin目录添加到Path，确保能找到依赖
-          $env:Path = "$qtBinDir;$env:Path"
           
-          # 使用 --dir 指定输出目录，直接对 exe 进行处理
-          windeployqt release_package\TextBridge.exe --dir release_package --release --no-translations --compiler-runtime --verbose 1
-          
-          # 4. 验证内容并补充（如果需要）
-          # 如果 windeployqt 成功，通常不需要手动复制核心 DLL，但保留作为保险
-          if (-not (Test-Path release_package\Qt5Core.dll)) {
-              Write-Warning "windeployqt failed to copy Qt DLLs, attempting manual copy..."
-              $coreDlls = @("Qt5Core.dll", "Qt5Gui.dll", "Qt5Widgets.dll", "libgcc_s_seh-1.dll", "libstdc++-6.dll", "libwinpthread-1.dll")
-              foreach ($dll in $coreDlls) {
-                  $srcPath = Join-Path $qtBinDir $dll
-                  if (Test-Path $srcPath) {
-                      Copy-Item -Path $srcPath -Destination release_package\ -Force
-                  }
-              }
+          # 关键修改：进入到 release_package 目录，直接对 TextBridge.exe 操作
+          # 这样 windeployqt 不需要 --dir 参数，且路径上下文最简单
+          Push-Location release_package
+          try {
+              $exeName = "TextBridge.exe"
+              # 显式设置环境变量，确保依赖查找
+              $env:Path = "$qtBinDir;$env:Path"
               
-              # 手动复制 plugins
-              mkdir -Force release_package/platforms
-              Copy-Item -Path "$qtRootDir/plugins/platforms/qwindows.dll" -Destination release_package/platforms/ -Force
-              Copy-Item -Path "$qtRootDir/plugins/platforms/qminimal.dll" -Destination release_package/platforms/ -Force
+              # 直接调用 windeployqt，不加复杂参数，让它自动处理
+              windeployqt $exeName --release --no-translations --compiler-runtime --verbose 1
+              
+              # 验证核心DLL是否存在，如果不存在则手动复制
+              if (-not (Test-Path "Qt5Core.dll")) {
+                  Write-Warning "windeployqt failed, switching to manual copy..."
+                  $coreDlls = @("Qt5Core.dll", "Qt5Gui.dll", "Qt5Widgets.dll", "libgcc_s_seh-1.dll", "libstdc++-6.dll", "libwinpthread-1.dll")
+                  foreach ($dll in $coreDlls) {
+                      $srcPath = Join-Path $qtBinDir $dll
+                      if (Test-Path $srcPath) {
+                          Copy-Item -Path $srcPath -Destination . -Force
+                      }
+                  }
+                  
+                  if (-not (Test-Path "platforms")) { mkdir platforms }
+                  Copy-Item -Path "$qtRootDir/plugins/platforms/qwindows.dll" -Destination "platforms/" -Force
+                  Copy-Item -Path "$qtRootDir/plugins/platforms/qminimal.dll" -Destination "platforms/" -Force
+              }
+          }
+          finally {
+              Pop-Location
           }
 
           # 5. 清理垃圾文件
