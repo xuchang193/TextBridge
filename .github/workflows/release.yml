@@ -25,7 +25,7 @@ jobs:
 
       # 安装Qt：补充add-to-path确保windeployqt可被找到
       - name: Install Qt
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           version: '5.14.2'
           arch: 'win64_mingw73'
@@ -74,25 +74,54 @@ jobs:
               $exeName = "TextBridge.exe"
               # 显式设置环境变量，确保依赖查找
               $env:Path = "$qtBinDir;$env:Path"
+              $env:QT_PLUGIN_PATH = "$qtRootDir\plugins"
+              $env:QML2_IMPORT_PATH = "$qtRootDir\qml"
               
-              # 直接调用 windeployqt，不加复杂参数，让它自动处理
-              windeployqt $exeName --release --no-translations --compiler-runtime --verbose 1
+              Write-Host "Path: $env:Path"
+              Write-Host "Plugin Path: $env:QT_PLUGIN_PATH"
+
+              # 直接调用 windeployqt，允许失败（后续有兜底）
+              # 注意：windeployqt 返回非0时，PowerShell 可能会记录 Error，但我们将捕获并处理
+              windeployqt .\$exeName --release --no-translations --compiler-runtime --verbose 1
               
+              # 无论 windeployqt 是否成功，都检查关键 DLL
+              # 如果 windeployqt 失败了，LastExitCode 会是非0，我们需要重置它以免 GitHub Action 判为失败
+              if ($LASTEXITCODE -ne 0) {
+                  Write-Warning "windeployqt exited with code $LASTEXITCODE. Proceeding to verification/manual copy."
+                  $global:LASTEXITCODE = 0
+              }
+
               # 验证核心DLL是否存在，如果不存在则手动复制
               if (-not (Test-Path "Qt5Core.dll")) {
-                  Write-Warning "windeployqt failed, switching to manual copy..."
+                  Write-Warning "Qt5Core.dll not found, executing manual copy fallback..."
                   $coreDlls = @("Qt5Core.dll", "Qt5Gui.dll", "Qt5Widgets.dll", "libgcc_s_seh-1.dll", "libstdc++-6.dll", "libwinpthread-1.dll")
                   foreach ($dll in $coreDlls) {
                       $srcPath = Join-Path $qtBinDir $dll
                       if (Test-Path $srcPath) {
                           Copy-Item -Path $srcPath -Destination . -Force
+                      } else {
+                          Write-Warning "Source DLL not found: $srcPath"
                       }
                   }
                   
                   if (-not (Test-Path "platforms")) { mkdir platforms }
-                  Copy-Item -Path "$qtRootDir/plugins/platforms/qwindows.dll" -Destination "platforms/" -Force
-                  Copy-Item -Path "$qtRootDir/plugins/platforms/qminimal.dll" -Destination "platforms/" -Force
+                  Copy-Item -Path "$qtRootDir\plugins\platforms\qwindows.dll" -Destination "platforms\" -Force
+                  Copy-Item -Path "$qtRootDir\plugins\platforms\qminimal.dll" -Destination "platforms\" -Force
               }
+
+              # ===== 写入【最优稳定版】qt.conf 彻底隔离环境，防止运行时闪退 =====
+              $qtConf = @"
+          [Paths]
+          Prefix = .
+          Plugins = .
+          Libraries = .
+          Binaries = .
+          "@
+              $qtConf | Out-File -FilePath qt.conf -Encoding ASCII -Force
+          }
+          catch {
+              Write-Error "An unexpected error occurred: $_"
+              exit 1
           }
           finally {
               Pop-Location
