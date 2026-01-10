@@ -68,6 +68,12 @@ jobs:
           # 尝试运行windeployqt，即使它失败或不完整，后续的手动复制会作为兜底
           windeployqt release_package\TextBridge.exe --release --no-translations --compiler-runtime
 
+          # 动态获取Qt根目录，避免硬编码路径错误 (提前获取变量)
+          $windeployqtPath = (Get-Command windeployqt).Source
+          $qtBinDir = Split-Path $windeployqtPath
+          $qtRootDir = Split-Path $qtBinDir
+          Write-Host "Detected Qt Root: $qtRootDir"
+
           # ===== 【兜底修复】手动复制核心DLL，防止windeployqt漏文件 =====
           Write-Host "Manually copying core DLLs from $qtBinDir..."
           $coreDlls = @("Qt5Core.dll", "Qt5Gui.dll", "Qt5Widgets.dll", "libgcc_s_seh-1.dll", "libstdc++-6.dll", "libwinpthread-1.dll")
@@ -81,11 +87,6 @@ jobs:
           }
 
           # ===== 【根因2修复 核心】手动复制Qt5.14.2缺失的platforms插件（必加，救命题） =====
-          # 动态获取Qt根目录，避免硬编码路径错误
-          $windeployqtPath = (Get-Command windeployqt).Source
-          $qtBinDir = Split-Path $windeployqtPath
-          $qtRootDir = Split-Path $qtBinDir
-          Write-Host "Detected Qt Root: $qtRootDir"
 
           mkdir -Force release_package/platforms
           Copy-Item -Path "$qtRootDir/plugins/platforms/qwindows.dll" -Destination release_package/platforms/ -Force
