@@ -94,7 +94,7 @@ jobs:
               # 验证核心DLL是否存在，如果不存在则手动复制
               if (-not (Test-Path "Qt5Core.dll")) {
                   Write-Warning "Qt5Core.dll not found, executing manual copy fallback..."
-                  $coreDlls = @("Qt5Core.dll", "Qt5Gui.dll", "Qt5Widgets.dll", "libgcc_s_seh-1.dll", "libstdc++-6.dll", "libwinpthread-1.dll")
+                  $coreDlls = @("Qt5Core.dll", "Qt5Gui.dll", "Qt5Widgets.dll", "Qt5Svg.dll", "libgcc_s_seh-1.dll", "libstdc++-6.dll", "libwinpthread-1.dll")
                   foreach ($dll in $coreDlls) {
                       $srcPath = Join-Path $qtBinDir $dll
                       if (Test-Path $srcPath) {
@@ -106,7 +106,6 @@ jobs:
                   
                   if (-not (Test-Path "platforms")) { mkdir platforms }
                   Copy-Item -Path "$qtRootDir\plugins\platforms\qwindows.dll" -Destination "platforms\" -Force
-                  Copy-Item -Path "$qtRootDir\plugins\platforms\qminimal.dll" -Destination "platforms\" -Force
               }
 
               # ===== 写入【最优稳定版】qt.conf 彻底隔离环境，防止运行时闪退 =====
