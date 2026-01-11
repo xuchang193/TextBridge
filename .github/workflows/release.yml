@@ -140,6 +140,13 @@ jobs:
           Compress-Archive -Path release_package\* -DestinationPath TextBridge-Win64.zip -Force
         shell: pwsh
 
+      - name: Upload Build Artifact (Test Download)
+        uses: actions/upload-artifact@v4
+        with:
+          name: TextBridge-Win64-Test
+          path: TextBridge-Win64.zip
+          retention-days: 90 # 产物保留90天，可自行修改
+
       # 发布到GitHub Release
       - name: Create Release
         uses: softprops/action-gh-release@v1
