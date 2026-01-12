@@ -1,5 +1,6 @@
 #include "inputwindow.h"
 #include <QApplication>
+#include <QStyleFactory>
 #include "bootmanager.h"
 
 int main(int argc, char *argv[])
@@ -20,6 +21,7 @@ int main(int argc, char *argv[])
 
 //    a.setQuitOnLastWindowClosed(false);
     QApplication::setQuitOnLastWindowClosed(false);
+    a.setStyle(QStyleFactory::create("Fusion"));
     InputWindow w;
     // 初始隐藏窗口，仅通过双击 Ctrl 触发显示
      w.show();
