@@ -10,148 +10,129 @@ on:
 jobs:
   build:
     name: Build and Package
-    runs-on: windows-2019 # 兼容Qt 5.14.2，也可替换为windows-latest
+    runs-on: windows-2019
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 新增：安装Qt 5.14.2对应的MinGW 7.3编译器（核心修复）
       - name: Install MinGW 7.3
         uses: egor-tensin/setup-mingw@v2
         with:
           version: 7.3.0
           platform: x64
 
-      # 安装Qt：补充add-to-path确保windeployqt可被找到
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: '5.14.2'
           arch: 'win64_mingw73'
           mirror: 'http://mirrors.ocf.berkeley.edu/qt/'
-          add-to-path: true # 关键：将Qt的bin目录加入系统PATH
+          add-to-path: true
 
-      # 优化CMake配置：改用PowerShell，显式指定编译器
       - name: Configure CMake
         run: |
-          mkdir -Force build_ci  # PowerShell的强制创建目录
+          mkdir -Force build_ci
           cd build_ci
           cmake -G "MinGW Makefiles" `
                 -DCMAKE_BUILD_TYPE=Release `
                 -DCMAKE_C_COMPILER=gcc `
                 -DCMAKE_CXX_COMPILER=g++ `
                 ..
-        shell: pwsh # 用PowerShell替代bash，适配Windows路径
+        shell: pwsh
 
-      # 修复构建参数：移除无效的--config Release
       - name: Build Application
         run: |
           cd build_ci
-          cmake --build . --parallel  # --parallel启用多线程构建，加速编译
+          cmake --build . --parallel
         shell: pwsh
 
-      # 优化打包步骤：PowerShell语法，增强容错性
-      - name: Package with windeployqt
+      # ==============================================
+      # 核心修改：替换为【和本地完全一致的手动打包逻辑】
+      # 完全复刻你的本地release_package目录，无冗余文件
+      # ==============================================
+      - name: Manual Package (Same as local bash script, 100% match)
         run: |
-          # 1. 准备打包目录
-          mkdir -Force release_package
-          Copy-Item -Path build_ci\src\TextBridge.exe -Destination release_package\ -Force
-          
-          # 2. 动态获取Qt路径
-          $windeployqtPath = (Get-Command windeployqt).Source
-          $qtBinDir = Split-Path $windeployqtPath
-          $qtRootDir = Split-Path $qtBinDir
-          Write-Host "Detected Qt Root: $qtRootDir"
-          
-          # 3. 运行 windeployqt (模仿成功案例：进入目录执行)
-          Write-Host "Running windeployqt..."
-          
-          # 关键修改：进入到 release_package 目录，直接对 TextBridge.exe 操作
-          # 这样 windeployqt 不需要 --dir 参数，且路径上下文最简单
-          Push-Location release_package
-          try {
-              $exeName = "TextBridge.exe"
-              # 显式设置环境变量，确保依赖查找
-              $env:Path = "$qtBinDir;$env:Path"
-              $env:QT_PLUGIN_PATH = "$qtRootDir\plugins"
-              $env:QML2_IMPORT_PATH = "$qtRootDir\qml"
-              
-              Write-Host "Path: $env:Path"
-              Write-Host "Plugin Path: $env:QT_PLUGIN_PATH"
+          # 1. 准备打包目录，和本地一致
+          $SOURCE_DIR = $PWD.Path
+          $RELEASE_DIR = Join-Path $SOURCE_DIR "release_package"
+          $BUILD_DIR = Join-Path $SOURCE_DIR "build_ci"
+          $QT_DIR = $env:Qt5_DIR | Split-Path -Parent | Split-Path -Parent
+          $QT_BIN_DIR = Join-Path $QT_DIR "bin"
+          $QT_PLUGIN_DIR = Join-Path $QT_DIR "plugins"
 
-              # 直接调用 windeployqt，允许失败（后续有兜底）
-              # 注意：windeployqt 返回非0时，PowerShell 可能会记录 Error，但我们将捕获并处理
-              windeployqt .\$exeName --release --no-translations --compiler-runtime --verbose 1
-              
-              # 无论 windeployqt 是否成功，都检查关键 DLL
-              # 如果 windeployqt 失败了，LastExitCode 会是非0，我们需要重置它以免 GitHub Action 判为失败
-              if ($LASTEXITCODE -ne 0) {
-                  Write-Warning "windeployqt exited with code $LASTEXITCODE. Proceeding to verification/manual copy."
-                  $global:LASTEXITCODE = 0
-              }
+          mkdir -Force $RELEASE_DIR
+          Write-Host "Qt Bin Dir: $QT_BIN_DIR"
+          Write-Host "Release Dir: $RELEASE_DIR"
 
-              # 验证核心DLL是否存在，如果不存在则手动复制
-              if (-not (Test-Path "Qt5Core.dll")) {
-                  Write-Warning "Qt5Core.dll not found, executing manual copy fallback..."
-                  $coreDlls = @("Qt5Core.dll", "Qt5Gui.dll", "Qt5Widgets.dll", "Qt5Svg.dll", "libgcc_s_seh-1.dll", "libstdc++-6.dll", "libwinpthread-1.dll")
-                  foreach ($dll in $coreDlls) {
-                      $srcPath = Join-Path $qtBinDir $dll
-                      if (Test-Path $srcPath) {
-                          Copy-Item -Path $srcPath -Destination . -Force
-                      } else {
-                          Write-Warning "Source DLL not found: $srcPath"
-                      }
-                  }
-                  
-                  if (-not (Test-Path "platforms")) { mkdir platforms }
-                  Copy-Item -Path "$qtRootDir\plugins\platforms\qwindows.dll" -Destination "platforms\" -Force
-              }
-
-              # ===== 写入【最优稳定版】qt.conf 彻底隔离环境，防止运行时闪退 =====
-              $qtConf = @"
-          [Paths]
-          Prefix = .
-          Plugins = .
-          Libraries = .
-          Binaries = .
-          "@
-              $qtConf | Out-File -FilePath qt.conf -Encoding ASCII -Force
+          # 2. 拷贝可执行文件 (和你本地一样，兼容src子目录)
+          $EXE_PATH = Join-Path $BUILD_DIR "src/TextBridge.exe"
+          if (-not (Test-Path $EXE_PATH)) {
+              $EXE_PATH = Join-Path $BUILD_DIR "TextBridge.exe"
           }
-          catch {
-              Write-Error "An unexpected error occurred: $_"
-              exit 1
-          }
-          finally {
-              Pop-Location
+          Copy-Item -Path $EXE_PATH -Destination $RELEASE_DIR -Force
+          Write-Host "✅ Copied: TextBridge.exe"
+
+          # 3. 拷贝核心DLL（和你本地完全一样的7个，一个不多一个不少）
+          $CORE_DLLS = @(
+              "Qt5Core.dll",
+              "Qt5Gui.dll",
+              "Qt5Widgets.dll",
+              "Qt5Svg.dll",
+              "libgcc_s_seh-1.dll",
+              "libstdc++-6.dll",
+              "libwinpthread-1.dll"
+          )
+          foreach ($dll in $CORE_DLLS) {
+              $dllSrc = Join-Path $QT_BIN_DIR $dll
+              Copy-Item -Path $dllSrc -Destination $RELEASE_DIR -Force
+              Write-Host "✅ Copied: $dll"
           }
 
-          # 5. 清理垃圾文件
-          Remove-Item -Path release_package\*.cpp, release_package\*.h, release_package\*.obj -ErrorAction SilentlyContinue
+          # 4. 拷贝platforms插件 (只拷贝qwindows.dll，和本地一致)
+          $PLATFORM_DST = Join-Path $RELEASE_DIR "platforms"
+          mkdir -Force $PLATFORM_DST
+          $qwindowsSrc = Join-Path $QT_PLUGIN_DIR "platforms/qwindows.dll"
+          Copy-Item -Path $qwindowsSrc -Destination $PLATFORM_DST -Force
+          Write-Host "✅ Copied: platforms/qwindows.dll"
 
-          # 6. 打印结果
-          Write-Host "===== Package Content ====="
-          Get-ChildItem -Recurse release_package
+          # 5. 拷贝imageformats插件 (只拷贝qsvg.dll，和本地一致)
+          $IMAGE_DST = Join-Path $RELEASE_DIR "imageformats"
+          mkdir -Force $IMAGE_DST
+          $qsvgSrc = Join-Path $QT_PLUGIN_DIR "imageformats/qsvg.dll"
+          Copy-Item -Path $qsvgSrc -Destination $IMAGE_DST -Force
+          Write-Host "✅ Copied: imageformats/qsvg.dll"
+
+          # 6. 生成【和你本地完全一样的qt.conf】！！！关键中的关键
+          $QT_CONF = Join-Path $RELEASE_DIR "qt.conf"
+          @"
+[Paths]
+Plugins=.
+"@ | Out-File -FilePath $QT_CONF -Encoding ASCII -Force
+          Write-Host "✅ Created: qt.conf (Same as local)"
+
+          # 7. 打印目录结构，和你的本地目录对比
+          Write-Host "`n===== Final Package Content (Same as local) ====="
+          Get-ChildItem -Recurse $RELEASE_DIR
         shell: pwsh
-      # 压缩打包：添加-Force覆盖已有zip
+
       - name: Create Zip Archive
         run: |
           Compress-Archive -Path release_package\* -DestinationPath TextBridge-Win64.zip -Force
         shell: pwsh
 
-      - name: Upload Build Artifact (Test Download)
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: TextBridge-Win64-Test
           path: TextBridge-Win64.zip
-          retention-days: 90 # 产物保留90天，可自行修改
+          retention-days: 90
 
-      # 发布到GitHub Release
       - name: Create Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: TextBridge-Win64.zip
-          body_path: README.md # 若无需README作为发布说明，可改为body: "Windows Release Build"
+          body_path: README.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
