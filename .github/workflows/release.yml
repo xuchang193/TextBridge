@@ -54,23 +54,22 @@ jobs:
       - name: Manual Package (Same as local bash script, 100% match)
         run: |
           # 1. 准备打包目录，和本地一致
-          $SOURCE_DIR = $PWD.Path
-          $RELEASE_DIR = Join-Path $SOURCE_DIR "release_package"
-          $BUILD_DIR = Join-Path $SOURCE_DIR "build_ci"
-          $QT_DIR = $env:Qt5_DIR | Split-Path -Parent | Split-Path -Parent
-          $QT_BIN_DIR = Join-Path $QT_DIR "bin"
-          $QT_PLUGIN_DIR = Join-Path $QT_DIR "plugins"
-
+          $RELEASE_DIR = "release_package"
           mkdir -Force $RELEASE_DIR
-          Write-Host "Qt Bin Dir: $QT_BIN_DIR"
+          
+          # 获取Qt路径
+          $windeployqtPath = (Get-Command windeployqt).Source
+          $qtBinDir = Split-Path $windeployqtPath
+          $qtRootDir = Split-Path $qtBinDir
+          $qtPluginDir = Join-Path $qtRootDir "plugins"
+          
+          Write-Host "Qt Bin Dir: $qtBinDir"
           Write-Host "Release Dir: $RELEASE_DIR"
 
-          # 2. 拷贝可执行文件 (和你本地一样，兼容src子目录)
-          $EXE_PATH = Join-Path $BUILD_DIR "src/TextBridge.exe"
-          if (-not (Test-Path $EXE_PATH)) {
-              $EXE_PATH = Join-Path $BUILD_DIR "TextBridge.exe"
-          }
-          Copy-Item -Path $EXE_PATH -Destination $RELEASE_DIR -Force
+          # 2. 拷贝可执行文件
+          $EXE_SOURCE = "build_ci\src\TextBridge.exe"
+          if (-not (Test-Path $EXE_SOURCE)) { $EXE_SOURCE = "build_ci\TextBridge.exe" }
+          Copy-Item -Path $EXE_SOURCE -Destination $RELEASE_DIR -Force
           Write-Host "✅ Copied: TextBridge.exe"
 
           # 3. 拷贝核心DLL（和你本地完全一样的7个，一个不多一个不少）
@@ -84,31 +83,31 @@ jobs:
               "libwinpthread-1.dll"
           )
           foreach ($dll in $CORE_DLLS) {
-              $dllSrc = Join-Path $QT_BIN_DIR $dll
+              $dllSrc = Join-Path $qtBinDir $dll
               Copy-Item -Path $dllSrc -Destination $RELEASE_DIR -Force
               Write-Host "✅ Copied: $dll"
           }
 
-          # 4. 拷贝platforms插件 (只拷贝qwindows.dll，和本地一致)
+          # 4. 拷贝platforms插件 (只拷贝qwindows.dll)
           $PLATFORM_DST = Join-Path $RELEASE_DIR "platforms"
           mkdir -Force $PLATFORM_DST
-          $qwindowsSrc = Join-Path $QT_PLUGIN_DIR "platforms/qwindows.dll"
+          $qwindowsSrc = Join-Path $qtPluginDir "platforms/qwindows.dll"
           Copy-Item -Path $qwindowsSrc -Destination $PLATFORM_DST -Force
           Write-Host "✅ Copied: platforms/qwindows.dll"
 
-          # 5. 拷贝imageformats插件 (只拷贝qsvg.dll，和本地一致)
+          # 5. 拷贝imageformats插件 (只拷贝qsvg.dll)
           $IMAGE_DST = Join-Path $RELEASE_DIR "imageformats"
           mkdir -Force $IMAGE_DST
-          $qsvgSrc = Join-Path $QT_PLUGIN_DIR "imageformats/qsvg.dll"
+          $qsvgSrc = Join-Path $qtPluginDir "imageformats/qsvg.dll"
           Copy-Item -Path $qsvgSrc -Destination $IMAGE_DST -Force
           Write-Host "✅ Copied: imageformats/qsvg.dll"
 
           # 6. 生成【和你本地完全一样的qt.conf】！！！关键中的关键
           $QT_CONF = Join-Path $RELEASE_DIR "qt.conf"
           @"
-[Paths]
-Plugins=.
-"@ | Out-File -FilePath $QT_CONF -Encoding ASCII -Force
+          [Paths]
+          Plugins=.
+          "@ | Out-File -FilePath $QT_CONF -Encoding ASCII -Force
           Write-Host "✅ Created: qt.conf (Same as local)"
 
           # 7. 打印目录结构，和你的本地目录对比
