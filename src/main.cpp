@@ -7,6 +7,9 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     
+    QApplication::setOrganizationName("VdiChineseInput");
+    QApplication::setApplicationName("VdiChineseInput");
+
     // Ensure default auto-boot setting on first run
     // If user hasn't set it yet (not in registry), enable it by default
     if (!BootManager::instance().isAutoBoot()) {

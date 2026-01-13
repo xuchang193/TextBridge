@@ -9,7 +9,40 @@
 #include <QMessageBox>
 #include <QPainter>
 #include <QPainterPath>
-#include <QIcon>
+#include <windows.h>
+
+static void SendCtrlV()
+{
+    qDebug() << "Preparing to send Ctrl+V...";
+    
+    INPUT inputs[4] = {};
+    ZeroMemory(inputs, sizeof(inputs));
+
+    // Press Ctrl
+    inputs[0].type = INPUT_KEYBOARD;
+    inputs[0].ki.wVk = VK_CONTROL;
+    
+    // Press V
+    inputs[1].type = INPUT_KEYBOARD;
+    inputs[1].ki.wVk = 'V';
+
+    // Release V
+    inputs[2].type = INPUT_KEYBOARD;
+    inputs[2].ki.wVk = 'V';
+    inputs[2].ki.dwFlags = KEYEVENTF_KEYUP;
+
+    // Release Ctrl
+    inputs[3].type = INPUT_KEYBOARD;
+    inputs[3].ki.wVk = VK_CONTROL;
+    inputs[3].ki.dwFlags = KEYEVENTF_KEYUP;
+
+    UINT uSent = SendInput(ARRAYSIZE(inputs), inputs, sizeof(INPUT));
+    if (uSent != ARRAYSIZE(inputs)) {
+        qDebug() << "SendInput failed! Sent:" << uSent << "Error:" << GetLastError();
+    } else {
+        qDebug() << "SendInput successful.";
+    }
+}
 
 static void ForceActivateWindow(HWND hwnd) {
     if (!hwnd) return;
@@ -67,6 +100,7 @@ void InputWindow::showEvent(QShowEvent *event)
 {
     QWidget::showEvent(event);
     // 窗口显示后自动聚焦到输入框，确保可以直接输入
+    // m_lastForegroundWindow = GetForegroundWindow(); // REMOVED: Do not capture here, it's too late!
     ForceActivateWindow((HWND)this->winId());
     m_inputEdit->setFocus();
 }
@@ -255,6 +289,10 @@ void InputWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
         if (this->isVisible()) {
             this->hide();
         } else {
+            // Capture BEFORE showing
+            m_lastForegroundWindow = GetForegroundWindow();
+            qDebug() << "Tray Activation -> Target HWND:" << m_lastForegroundWindow << "Self HWND:" << (HWND)this->winId();
+            
             this->showNormal();
             ForceActivateWindow((HWND)this->winId());
         }
@@ -290,6 +328,11 @@ void InputWindow::toggleVisibility()
             QRect screenRect = screen->availableGeometry();
             move((screenRect.width() - width()) / 2, (screenRect.height() - height()) / 2);               
         }
+        
+        // Capture BEFORE showing
+        m_lastForegroundWindow = GetForegroundWindow();
+        qDebug() << "Double Ctrl -> Show. Target HWND:" << m_lastForegroundWindow << "Self HWND:" << (HWND)this->winId();
+        
         show();
         ForceActivateWindow((HWND)this->winId());
         m_inputEdit->setFocus();
@@ -376,9 +419,33 @@ void InputWindow::onEnterPressed()
 
         m_historyManager->addHistory(inputText);
         updateButtonState();
+
+        bool is_hyper_mode = ConfigManager::instance().isHyperModeEnabled();
+        if (ConfigManager::instance().isHyperModeEnabled() && m_lastForegroundWindow) {
+             qDebug() << "Hyper Mode Triggered. Target HWND:" << m_lastForegroundWindow;
+             
+             // 0. Hide window FIRST to allow focus transition
+             hide();
+             
+             // 1. Force focus back to original window
+             ForceActivateWindow(m_lastForegroundWindow);
+             
+             // 2. Wait for clipboard and focus
+             // Wait loop to ensure window is actually foreground
+             int retries = 10;
+             while (retries-- > 0) {
+                 if (GetForegroundWindow() == m_lastForegroundWindow) break;
+                 Sleep(20);
+             }
+             Sleep(100); // Extra buffer for app to be ready for input
+
+             // 3. Send Ctrl+V
+             SendCtrlV();
+        } else {
+            hide();
+        }
     }
     m_inputEdit->clear();
-    hide();
 }
 
 void InputWindow::showPreviousHistory()

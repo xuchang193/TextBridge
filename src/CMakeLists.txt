@@ -12,6 +12,8 @@ set(PROJECT_SOURCES
   trayiconmanager.h
   bootmanager.cpp
   bootmanager.h
+  configmanager.cpp
+  configmanager.h
   ${RES_SOURCES}
 )
 

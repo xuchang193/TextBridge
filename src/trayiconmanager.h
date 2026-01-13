@@ -6,6 +6,7 @@
 #include <QMenu>
 #include <QAction>
 #include "bootmanager.h"
+#include "configmanager.h"
 
 class TrayIconManager : public QObject
 {
@@ -32,6 +33,7 @@ private:
     QMenu *m_trayMenu = nullptr;
     QAction *m_showAction = nullptr;
     QAction *m_autoBootAction = nullptr;
+    QAction *m_hyperModeAction = nullptr;
     QAction *m_quitAction = nullptr;
 };
 

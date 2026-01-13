@@ -14,6 +14,7 @@
 #include "historymanager.h"
 #include "trayiconmanager.h"
 #include "keyboardhook.h"
+#include "configmanager.h"
 
 #include <QGraphicsDropShadowEffect>
 
@@ -77,6 +78,8 @@ private:
 
     bool m_isDragging = false;       
     QPoint m_dragStartPos;
+
+    HWND m_lastForegroundWindow = NULL;
 };
 
 #endif // INPUTWINDOW_H

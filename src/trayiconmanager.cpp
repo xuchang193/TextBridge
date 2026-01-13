@@ -52,6 +52,15 @@ void TrayIconManager::createActions()
         BootManager::instance().setAutoBoot(checked);
     });
 
+    // Hyper Mode Action
+    m_hyperModeAction = new QAction(tr("Hyper Mode"), this);
+    m_hyperModeAction->setCheckable(true);
+    m_hyperModeAction->setChecked(ConfigManager::instance().isHyperModeEnabled());
+    m_hyperModeAction->setToolTip(tr("开启后，按 Enter 键自动将内容粘贴到目标窗口"));
+    connect(m_hyperModeAction, &QAction::toggled, this, [](bool checked){
+        ConfigManager::instance().setHyperModeEnabled(checked);
+    });
+
     m_quitAction = new QAction(tr("退出"), this);
     // 当点击“退出”时，发送信号
     connect(m_quitAction, &QAction::triggered, this, &TrayIconManager::quitRequested);
@@ -62,6 +71,7 @@ void TrayIconManager::createMenu()
     m_trayMenu = new QMenu();
     m_trayMenu->addAction(m_showAction);
     m_trayMenu->addAction(m_autoBootAction);
+    m_trayMenu->addAction(m_hyperModeAction);
     m_trayMenu->addSeparator();
     m_trayMenu->addAction(m_quitAction);
 
