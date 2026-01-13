@@ -11,6 +11,34 @@
 #include <QPainterPath>
 #include <QIcon>
 
+static void ForceActivateWindow(HWND hwnd) {
+    if (!hwnd) return;
+
+    DWORD currentThreadId = GetCurrentThreadId();
+    DWORD foregroundThreadId = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
+
+    if (currentThreadId != foregroundThreadId) {
+        AttachThreadInput(foregroundThreadId, currentThreadId, TRUE);
+        
+        int retry = 3;
+        while (retry-- > 0) {
+            if (SetForegroundWindow(hwnd)) break;
+            Sleep(10);
+        }
+        
+        SetFocus(hwnd);
+        AttachThreadInput(foregroundThreadId, currentThreadId, FALSE);
+    } else {
+        SetForegroundWindow(hwnd);
+        SetFocus(hwnd);
+    }
+    
+    // 确保窗口不在最小化状态
+    if (IsIconic(hwnd)) {
+        ShowWindow(hwnd, SW_RESTORE);
+    }
+}
+
 static bool loadQssFile(const QString& qssFilePath, QWidget* targetWidget = nullptr)
 {
     QFile qssFile(qssFilePath);
@@ -39,7 +67,7 @@ void InputWindow::showEvent(QShowEvent *event)
 {
     QWidget::showEvent(event);
     // 窗口显示后自动聚焦到输入框，确保可以直接输入
-    activateWindow();
+    ForceActivateWindow((HWND)this->winId());
     m_inputEdit->setFocus();
 }
 
@@ -228,7 +256,7 @@ void InputWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
             this->hide();
         } else {
             this->showNormal();
-            this->activateWindow();
+            ForceActivateWindow((HWND)this->winId());
         }
         break;
     default:
@@ -263,7 +291,7 @@ void InputWindow::toggleVisibility()
             move((screenRect.width() - width()) / 2, (screenRect.height() - height()) / 2);               
         }
         show();
-        activateWindow();
+        ForceActivateWindow((HWND)this->winId());
         m_inputEdit->setFocus();
     }
 }
