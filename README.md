@@ -1,6 +1,20 @@
 # TextBridge
 
-**TextBridge** is a lightweight, non-intrusive text input bridge designed for Windows. It acts as a seamless connector between your local environment and VDI (Virtual Desktop Infrastructure), remote desktops, or full-screen applications, solving the compatibility and latency issues of switching system IMEs.
+<div align=center>
+<img src="src/resources/images/vdi_input.svg" height="160" width="160" />
+</div>
+
+<br>
+
+## Introduction
+
+<p align="right"><br><a href="README_CN.md">简体中文</a> | <a href="README.md">English</a></p>
+
+![License](https://img.shields.io/badge/license-MIT-green) ![Qt](https://img.shields.io/badge/Qt-5.14.2-green) ![Platform](https://img.shields.io/badge/platform-Windows-blue) ![Language](https://img.shields.io/badge/language-C++-orange)
+
+> **TextBridge** is a lightweight, non-intrusive text input bridge designed for Windows. It acts as a seamless connector between your local environment and VDI (Virtual Desktop Infrastructure), remote desktops, or full-screen applications, solving the compatibility and latency issues of switching system IMEs.
+
+<br>
 
 The tool provides a floating input window that appears on demand, allowing you to type text locally and instantly send it to the active application via the clipboard.
 

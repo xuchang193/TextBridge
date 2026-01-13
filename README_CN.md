@@ -1,6 +1,20 @@
-# TextBridge (原 VDI 中文输入助手)
+# TextBridge
 
-**TextBridge** 是一款专为 Windows 设计的轻量级、无侵入式文本输入桥接工具。它作为本地环境与 VDI（虚拟桌面基础架构）、远程桌面场景或全屏应用程序之间的无缝连接器，解决了在这些环境中切换系统输入法（IME）可能带来的卡顿、兼容性差或操作繁琐的问题。
+<div align=center>
+<img src="src/resources/images/vdi_input.svg" height="160" width="160" />
+</div>
+
+<br>
+
+## 简介
+
+<p align="right"><br><a href="README_CN.md">简体中文</a> | <a href="README.md">English</a></p>
+
+![License](https://img.shields.io/badge/license-MIT-green) ![Qt](https://img.shields.io/badge/Qt-5.14.2-green) ![Platform](https://img.shields.io/badge/platform-Windows-blue) ![Language](https://img.shields.io/badge/language-C++-orange)
+
+> **TextBridge** (原 VDI 中文输入助手) 是一款专为 Windows 设计的轻量级、无侵入式文本输入桥接工具。它作为本地环境与 VDI（虚拟桌面基础架构）、远程桌面场景或全屏应用程序之间的无缝连接器，解决了在这些环境中切换系统输入法（IME）可能带来的卡顿、兼容性差或操作繁琐的问题。
+
+<br>
 
 该工具提供一个按需显示的悬浮输入窗口，允许您在本地环境中流畅输入文本，并通过剪贴板瞬间将内容发送到目标应用程序中。
 
