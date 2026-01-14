@@ -19,7 +19,6 @@ KeyboardHook::KeyboardHook(QObject *parent) : QObject(parent)
     m_ctrlTimer->setSingleShot(true);
     connect(m_ctrlTimer, &QTimer::timeout, this, [this]() {
         m_isFirstCtrl = false;
-        // qDebug() << "Double Ctrl timer expired";
     });
 }
 
@@ -109,14 +108,12 @@ void KeyboardHook::handleCtrlRelease()
         // First Ctrl press
         m_isFirstCtrl = true;
         m_ctrlTimer->start(CTRL_INTERVAL);
-        // qDebug() << "First Ctrl detected";
     }
     else
     {
         // Second Ctrl press within interval
         m_ctrlTimer->stop();
         m_isFirstCtrl = false;
-        // qDebug() << "Double Ctrl detected -> Activation Requested";
         emit activationRequested();
     }
 }
@@ -126,7 +123,6 @@ void KeyboardHook::handleOtherKey()
     if (m_isFirstCtrl) {
         m_isFirstCtrl = false;
         m_ctrlTimer->stop();
-        // qDebug() << "Interference detected, resetting Double Ctrl state";
     }
     emit otherKeyDetected();
 }

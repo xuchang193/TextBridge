@@ -26,18 +26,14 @@ public:
     InputWindow(QWidget *parent = nullptr);
     ~InputWindow();
 
-    // Removed static instance as it's no longer needed for global hook callback
-
 public slots:
-    void toggleVisibility(); // Renamed from onCtrlPressed
+    void toggleVisibility(); 
     void hideWindow();       // For ESC handling
 
 protected:
     bool nativeEvent(const QByteArray &eventType, void *message, long *result) override;
     void showEvent(QShowEvent *event) override;
-    void hideEvent(QHideEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
-    void paintEvent(QPaintEvent *event) override;
 
 private:
     void initUI();
@@ -53,7 +49,6 @@ private slots:
 
 private:
     QPlainTextEdit *m_inputEdit = nullptr;
-    // Removed m_ctrlTimer, m_isFirstCtrl, constants, hook methods
     
     bool m_stay_in_center = true;
     const int INIT_WIDTH = 500;
@@ -64,7 +59,6 @@ private:
     QString m_font_family;
     HistoryManager *m_historyManager = nullptr;
     TrayIconManager *m_trayManager = nullptr;
-    // KeyboardHook is a singleton, accessed via instance()
 
     QHBoxLayout *m_main_h_layout = nullptr;
     QVBoxLayout *m_buttons_widget_v_layout = nullptr;

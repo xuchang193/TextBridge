@@ -100,14 +100,8 @@ void InputWindow::showEvent(QShowEvent *event)
 {
     QWidget::showEvent(event);
     // 窗口显示后自动聚焦到输入框，确保可以直接输入
-    // m_lastForegroundWindow = GetForegroundWindow(); // REMOVED: Do not capture here, it's too late!
     ForceActivateWindow((HWND)this->winId());
     m_inputEdit->setFocus();
-}
-
-void InputWindow::hideEvent(QHideEvent *event)
-{
-    QWidget::hideEvent(event);
 }
 
 bool InputWindow::nativeEvent(const QByteArray &eventType, void *message, long *result)
@@ -116,28 +110,12 @@ bool InputWindow::nativeEvent(const QByteArray &eventType, void *message, long *
 }
 
 
-
-void InputWindow::paintEvent(QPaintEvent *event)
-{
-    Q_UNUSED(event);
-    // Since we are using a translucent background with a child widget for shadow,
-    // we don't need to manually paint the background here anymore.
-    // The child widget 'm_centerWidget' handles the white background and border via stylesheet.
-}
-
-
 InputWindow::InputWindow(QWidget *parent)
     : QWidget(parent)
 {
-    // m_instance = this; // Removed static instance
-
     initFont();
     initUI();
 
-    // 双击Ctrl定时器 - Removed, moved to KeyboardHook
-    // m_ctrlTimer = new QTimer(this);
-    // ...
-    
     // 安装事件过滤器以处理 Enter 和 Shift+Enter
     m_inputEdit->installEventFilter(this);
     
@@ -183,7 +161,6 @@ void InputWindow::initUI()
     setFixedSize(INIT_WIDTH + 20, INIT_HEIGHT + 20); 
 
     this->setObjectName("MainWindow");
-//    loadQssFile(":/resources/qss/inputwindow_style.qss", this);
 
     // 创建一个中心部件来承载内容，并应用阴影
     m_centerWidget = new QWidget(this);
@@ -251,7 +228,6 @@ void InputWindow::initUI()
     m_buttons_widget_v_layout->addWidget(m_draft_label);
     m_buttons_widget_v_layout->addWidget(m_up_arrow);
     m_buttons_widget_v_layout->addWidget(m_down_arrow);
-//    m_buttons_widget_v_layout->addSpacerItem(new QSpacerItem(1, 1, QSizePolicy::Minimum, QSizePolicy::Expanding));
     m_buttons_widget_v_layout->setSpacing(0);
     m_buttons_widget_v_layout->setContentsMargins(0, 0, 0, 0);
 
@@ -314,22 +290,18 @@ void InputWindow::toggleVisibility()
 {
     if (isVisible())
     {
-        // If visible, hide
         qDebug() << "Double Ctrl -> Hide";
         hide();
     }
     else
     {
-        // If hidden, show
         qDebug() << "Double Ctrl -> Show";
-        // Ensure centered if needed (logic can be refined)
         if (m_stay_in_center) {
             QScreen *screen = QApplication::primaryScreen();
             QRect screenRect = screen->availableGeometry();
             move((screenRect.width() - width()) / 2, (screenRect.height() - height()) / 2);               
         }
         
-        // Capture BEFORE showing
         m_lastForegroundWindow = GetForegroundWindow();
         qDebug() << "Double Ctrl -> Show. Target HWND:" << m_lastForegroundWindow << "Self HWND:" << (HWND)this->winId();
         
@@ -347,25 +319,19 @@ bool InputWindow::eventFilter(QObject *obj, QEvent *event)
         if (nullptr == keyEvent) {
             qDebug() << "keyEvent is nullptr!";
         }
-        // 处理 Enter 键
         if (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter)
         {
-            // 如果按下了 Shift，则插入换行符
             if (keyEvent->modifiers() & Qt::ShiftModifier)
             {
-                // Shift+Enter：插入换行，不处理事件（让默认行为处理）
                 return false;
             }
-                // Enter（无 Shift）：复制到剪贴板并隐藏窗口
                 onEnterPressed();
-                return true; // 已处理，阻止默认行为
+                return true;
         }
     }
 
-    // ========== 新增逻辑：处理m_draft_label拖动窗口 ==========
     if (obj == m_draft_label)
     {
-        // 1. 鼠标左键按下：标记开始拖动，记录起始坐标
         if (event->type() == QEvent::MouseButtonPress)
         {
             auto *mouseEvent = dynamic_cast<QMouseEvent*>(event);
@@ -375,10 +341,9 @@ bool InputWindow::eventFilter(QObject *obj, QEvent *event)
             if (mouseEvent->button() == Qt::LeftButton)
             {
                 m_isDragging = true;
-                m_dragStartPos = mouseEvent->globalPos(); // 记录鼠标按下时的全局坐标
+                m_dragStartPos = mouseEvent->globalPos();
             }
         }
-        // 2. 鼠标移动：如果正在拖动，更新窗口位置
         else if (event->type() == QEvent::MouseMove && m_isDragging)
         {
             m_stay_in_center = false;
@@ -390,7 +355,6 @@ bool InputWindow::eventFilter(QObject *obj, QEvent *event)
             this->move(this->pos() + offset); // 移动窗口
             m_dragStartPos = mouseEvent->globalPos(); // 更新起始坐标，避免窗口跳动
         }
-        // 3. 鼠标左键释放：停止拖动
         else if (event->type() == QEvent::MouseButtonRelease)
         {
             auto *mouseEvent = dynamic_cast<QMouseEvent*>(event);
@@ -404,7 +368,6 @@ bool InputWindow::eventFilter(QObject *obj, QEvent *event)
         }
     }
 
-    // 其他事件交给默认处理
     return QWidget::eventFilter(obj, event);
 }
 
@@ -420,7 +383,6 @@ void InputWindow::onEnterPressed()
         m_historyManager->addHistory(inputText);
         updateButtonState();
 
-        bool is_hyper_mode = ConfigManager::instance().isHyperModeEnabled();
         if (ConfigManager::instance().isHyperModeEnabled() && m_lastForegroundWindow) {
              qDebug() << "Hyper Mode Triggered. Target HWND:" << m_lastForegroundWindow;
              
