@@ -12,7 +12,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-green) ![Qt](https://img.shields.io/badge/Qt-5.14.2-green) ![Platform](https://img.shields.io/badge/platform-Windows-blue) ![Language](https://img.shields.io/badge/language-C++-orange)
 
-> **TextBridge** (原 VDI 中文输入助手) 是一款专为 Windows 设计的轻量级、无侵入式文本输入桥接工具。它作为本地环境与 VDI（虚拟桌面基础架构）、远程桌面场景或全屏应用程序之间的无缝连接器，解决了在这些环境中切换系统输入法（IME）可能带来的卡顿、兼容性差或操作繁琐的问题。
+> **TextBridge** 是一款专为 Windows 设计的轻量级、无侵入式文本输入桥接工具。它作为本地环境与 VDI（虚拟桌面基础架构）、远程桌面场景或全屏应用程序之间的无缝连接器，解决了在这些环境中切换系统输入法（IME）可能带来的操作繁琐问题。
 
 <br>
 
@@ -82,23 +82,6 @@
 4.  输入您想要发送的中文或英文内容。
 5.  按下 **Enter** 键，内容自动复制到剪贴板，窗口自动消失。
 6.  在您的目标应用（如 VDI 桌面）中，按下 `Ctrl+V` 粘贴内容。
-
-## 项目结构
-
-```
-TextBridge/
-├── src/
-│   ├── resources/          # 图标、字体和 QSS 样式表资源
-│   ├── bootmanager.cpp     # 开机自启逻辑
-│   ├── historymanager.cpp  # 输入历史记录管理
-│   ├── inputwindow.cpp     # 主界面 UI 逻辑
-│   ├── keyboardhook.cpp    # 全局键盘钩子实现
-│   ├── trayiconmanager.cpp # 系统托盘管理
-│   └── ...
-├── scripts/
-│   └── release.sh          # 自动化打包脚本 (适配 MinGW 64-bit)
-└── README.md
-```
 
 ## 许可证
 

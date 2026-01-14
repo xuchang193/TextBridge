@@ -12,7 +12,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-green) ![Qt](https://img.shields.io/badge/Qt-5.14.2-green) ![Platform](https://img.shields.io/badge/platform-Windows-blue) ![Language](https://img.shields.io/badge/language-C++-orange)
 
-> **TextBridge** is a lightweight, non-intrusive text input bridge designed for Windows. It acts as a seamless connector between your local environment and VDI (Virtual Desktop Infrastructure), remote desktops, or full-screen applications, solving the compatibility and latency issues of switching system IMEs.
+> **TextBridge** is a lightweight, non-intrusive text input bridge designed for Windows. It acts as a seamless connector between your local environment and VDI (Virtual Desktop Infrastructure), remote desktops, or full-screen applications, solving the compatibility issues of switching system IMEs.
 
 <br>
 
@@ -82,23 +82,6 @@ To create a standalone distribution package:
 4.  Type your text.
 5.  Press **Enter** to copy the text to your clipboard and close the window.
 6.  Paste (`Ctrl+V`) the text into your target application (e.g., a VDI session).
-
-## Project Structure
-
-```
-TextBridge/
-├── src/
-│   ├── resources/          # Icons, fonts, and QSS stylesheets
-│   ├── bootmanager.cpp     # Auto-start logic
-│   ├── historymanager.cpp  # Input history management
-│   ├── inputwindow.cpp     # Main UI logic
-│   ├── keyboardhook.cpp    # Global keyboard hook implementation
-│   ├── trayiconmanager.cpp # System tray handling
-│   └── ...
-├── scripts/
-│   └── release.sh          # Auto-packaging script (MinGW 64-bit)
-└── README.md
-```
 
 ## License
 
