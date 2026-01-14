@@ -24,6 +24,9 @@ The tool provides a floating input window that appears on demand, allowing you t
 *   **Smart Clipboard Sync**:
     *   Type your text and press `Enter` to automatically copy it to the clipboard and hide the window.
     *   Press `Shift + Enter` to insert a new line without closing the window.
+*   **Hyper Mode** (Experimental):
+    *   Enable via tray menu.
+    *   Automatically switches focus back to the previous window and instantly inserts the text upon pressing `Enter`, achieving a seamless "Type & Send" workflow.
 *   **Input History**:
     *   Navigate through your input history using the `Up` and `Down` arrow keys (or the on-screen buttons).
     *   Automatically saves your recent inputs.
@@ -82,6 +85,8 @@ To create a standalone distribution package:
 4.  Type your text.
 5.  Press **Enter** to copy the text to your clipboard and close the window.
 6.  Paste (`Ctrl+V`) the text into your target application (e.g., a VDI session).
+
+    > **Tip**: Enable **Hyper Mode** in the tray menu to automatically insert text into the target window upon pressing Enter, skipping step 6.
 
 ## License
 
