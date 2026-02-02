@@ -46,9 +46,11 @@ void TrayIconManager::createActions()
     // Auto Boot Action
     m_autoBootAction = new QAction(tr("开机自启"), this);
     m_autoBootAction->setCheckable(true);
-    // Initialize state from BootManager
-    m_autoBootAction->setChecked(BootManager::instance().isAutoBoot());
+    // Initialize state from ConfigManager (配置文件)
+    m_autoBootAction->setChecked(ConfigManager::instance().isAutoBootEnabled());
     connect(m_autoBootAction, &QAction::toggled, this, [](bool checked){
+        // 同时更新配置文件和注册表
+        ConfigManager::instance().setAutoBootEnabled(checked);
         BootManager::instance().setAutoBoot(checked);
     });
 
