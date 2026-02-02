@@ -8,8 +8,8 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     
-    QApplication::setOrganizationName("VdiChineseInput");
-    QApplication::setApplicationName("VdiChineseInput");
+    QApplication::setOrganizationName("TextBridge");
+    QApplication::setApplicationName("TextBridge");
     
     // 根据配置文件中的设置同步注册表状态
     bool autoBootConfig = ConfigManager::instance().isAutoBootEnabled();

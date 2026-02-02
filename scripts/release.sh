@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# VdiChineseInput Release Packaging Script (手动部署依赖版)
+# TextBridge Release Packaging Script (手动部署依赖版)
 # Environment: Windows (Git Bash) + MinGW + Qt 5.14.2
 # ==============================================================================
 

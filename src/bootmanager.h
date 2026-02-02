@@ -24,7 +24,7 @@ private:
     BootManager& operator=(const BootManager&) = delete;
 
     const QString REG_PATH = "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-    const QString APP_NAME = "VdiChineseInput";
+    const QString APP_NAME = "TextBridge";
 };
 
 #endif // BOOTMANAGER_H

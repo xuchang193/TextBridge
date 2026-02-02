@@ -29,7 +29,7 @@ void TrayIconManager::initTray()
     }
     m_trayIcon->setIcon(icon);
     
-    m_trayIcon->setToolTip(tr("VDI Chinese Input"));
+    m_trayIcon->setToolTip(tr("TextBridge"));
 
     createActions();
     createMenu();
