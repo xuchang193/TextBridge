@@ -3,7 +3,7 @@
 #include <QApplication>
 
 // Global static variables for the hook procedure
-static HHOOK g_hHook = NULL;
+static HHOOK g_hHook = nullptr;
 static bool g_isCtrlDown = false;
 static bool g_isCleanCtrl = true;
 
@@ -30,7 +30,7 @@ KeyboardHook::~KeyboardHook()
 void KeyboardHook::installHook()
 {
     if (!g_hHook) {
-        g_hHook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, GetModuleHandle(NULL), 0);
+        g_hHook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, GetModuleHandle(nullptr), 0);
         if (!g_hHook) {
             qCritical() << "Failed to install keyboard hook! Error:" << GetLastError();
         } else {
@@ -43,7 +43,7 @@ void KeyboardHook::uninstallHook()
 {
     if (g_hHook) {
         UnhookWindowsHookEx(g_hHook);
-        g_hHook = NULL;
+        g_hHook = nullptr;
         qDebug() << "Keyboard hook uninstalled.";
     }
 }
@@ -52,7 +52,7 @@ LRESULT CALLBACK KeyboardHook::LowLevelKeyboardProc(int nCode, WPARAM wParam, LP
 {
     if (nCode == HC_ACTION)
     {
-        KBDLLHOOKSTRUCT *pkb = (KBDLLHOOKSTRUCT *)lParam;
+        auto pkb = (KBDLLHOOKSTRUCT *)lParam;
         
         // Detect Ctrl (Left or Right)
         bool isCtrl = (pkb->vkCode == VK_LCONTROL || pkb->vkCode == VK_RCONTROL || pkb->vkCode == VK_CONTROL);

@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
     }
 
     QApplication::setQuitOnLastWindowClosed(false);
-    a.setStyle(QStyleFactory::create("Fusion"));
+    QApplication::setStyle(QStyleFactory::create("Fusion"));
     InputWindow w;
     w.show();
     return QApplication::exec();
