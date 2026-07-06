@@ -14,6 +14,8 @@ set(PROJECT_SOURCES
   bootmanager.h
   configmanager.cpp
   configmanager.h
+  singleinstanceguard.cpp
+  singleinstanceguard.h
   ${RES_SOURCES}
 )
 

@@ -3,6 +3,7 @@
 #include <QStyleFactory>
 #include "bootmanager.h"
 #include "configmanager.h"
+#include "singleinstanceguard.h"
 
 int main(int argc, char *argv[])
 {
@@ -10,6 +11,12 @@ int main(int argc, char *argv[])
     
     QApplication::setOrganizationName("TextBridge");
     QApplication::setApplicationName("TextBridge");
+
+    // 只允许启动一个实例
+    SingleInstanceGuard intanceGuard;
+    if (!intanceGuard.tryAcquire()) {
+        return 0;
+    }
     
     // 根据配置文件中的设置同步注册表状态
     bool autoBootConfig = ConfigManager::instance().isAutoBootEnabled();

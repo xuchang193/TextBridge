@@ -2,3 +2,5 @@ build*/
 release*/
 CMakeLists.txt.user
 .git/
+.vs/
+tutorial/

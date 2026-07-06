@@ -39,8 +39,7 @@ void TrayIconManager::initTray()
 
 void TrayIconManager::createActions()
 {
-    m_showAction = new QAction(tr("打开"), this);
-    // 当点击“打开”时，发送信号，由外部决定如何“打开”
+    m_showAction = new QAction(tr("显示"), this);
     connect(m_showAction, &QAction::triggered, this, &TrayIconManager::showWindowRequested);
 
     // Auto Boot Action
