@@ -72,6 +72,96 @@ static void ForceActivateWindow(HWND hwnd) {
     }
 }
 
+static void MoveMouseAbsolute(int x, int y)
+{
+    const int virtualWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    const int virtualHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+    const int virtualLeft = GetSystemMetrics(SM_XVIRTUALSCREEN);
+    const int virtualTop = GetSystemMetrics(SM_YVIRTUALSCREEN);
+
+    if (virtualWidth <= 1 || virtualHeight <= 1) {
+        return;
+    }
+
+    INPUT input = {};
+    input.type = INPUT_MOUSE;
+    input.mi.dx = ((x - virtualLeft) * 65535) / (virtualWidth - 1);
+    input.mi.dy = ((y - virtualTop) * 65535) / (virtualHeight - 1);
+    input.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK;
+    SendInput(1, &input, sizeof(INPUT));
+}
+
+static bool isSyncPointFarEnough(const POINT &cursorPos, int x, int y)
+{
+    const int dx = cursorPos.x - x;
+    const int dy = cursorPos.y - y;
+    return (dx * dx + dy * dy) >= 25;
+}
+
+static QPoint getOutsideTargetWindowPoint(HWND targetWindow)
+{
+    if (targetWindow && IsWindow(targetWindow)) {
+        RECT rect;
+        if (GetWindowRect(targetWindow, &rect)) {
+            return QPoint(rect.right + 20, (rect.top + rect.bottom) / 2);
+        }
+    }
+    return QPoint(-1, -1);
+}
+
+static QPoint getScreenEdgePoint()
+{
+    QScreen *screen = QApplication::primaryScreen();
+    if (screen) {
+        QRect available = screen->availableGeometry();
+        return QPoint(available.right() + 10, available.center().y());
+    }
+
+    const int virtualWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    const int virtualHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+    const int virtualLeft = GetSystemMetrics(SM_XVIRTUALSCREEN);
+    const int virtualTop = GetSystemMetrics(SM_YVIRTUALSCREEN);
+    return QPoint(virtualLeft + virtualWidth - 1, virtualTop + virtualHeight / 2);
+}
+
+static QPoint resolveVdiSyncPoint(HWND targetWindow, const QPoint &preferredPoint)
+{
+    POINT cursorPos;
+    GetCursorPos(&cursorPos);
+
+    const QPoint outsideWindowPoint = getOutsideTargetWindowPoint(targetWindow);
+    const QPoint screenEdgePoint = getScreenEdgePoint();
+    const QPoint candidates[] = { preferredPoint, outsideWindowPoint, screenEdgePoint };
+
+    for (const QPoint &candidate : candidates) {
+        if (candidate.x() < 0) {
+            continue;
+        }
+        if (isSyncPointFarEnough(cursorPos, candidate.x(), candidate.y())) {
+            return candidate;
+        }
+    }
+
+    return screenEdgePoint;
+}
+
+static void TriggerVdiClipboardSync(HWND targetWindow, const QPoint &preferredPoint)
+{
+    POINT original;
+    if (!GetCursorPos(&original)) {
+        return;
+    }
+
+    const QPoint syncPoint = resolveVdiSyncPoint(targetWindow, preferredPoint);
+    qDebug() << "VDI clipboard sync nudge to:" << syncPoint
+             << "from:" << QPoint(original.x, original.y);
+
+    MoveMouseAbsolute(syncPoint.x(), syncPoint.y());
+    Sleep(80);
+    MoveMouseAbsolute(original.x, original.y);
+    Sleep(30);
+}
+
 static bool loadQssFile(const QString& qssFilePath, QWidget* targetWidget = nullptr)
 {
     QFile qssFile(qssFilePath);
@@ -379,6 +469,11 @@ void InputWindow::onEnterPressed()
         QClipboard *clipboard = QApplication::clipboard();
         clipboard->setText(inputText);
         qDebug() << "复制到剪贴板：" << inputText;
+
+        // 适配vdi的剪切板同步机制
+        const QPoint draftCenter = m_draft_label->mapToGlobal(
+            QPoint(m_draft_label->width() / 2, m_draft_label->height() / 2));
+        TriggerVdiClipboardSync(m_lastForegroundWindow, draftCenter);
 
         m_historyManager->addHistory(inputText);
         updateButtonState();
